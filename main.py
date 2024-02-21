@@ -44,6 +44,8 @@ def main():
     iter = 0
     cur_qc = qc.copy() 
     while len(reuse_pairs) > 0 and iter < len(qc.qubits) - 1:
+        if iter >= len(qc.qubits) - 1:
+            raise Exception("What in tarnation is this")
         if args.verbose > 0:
             print(reuse_pairs)
         depth_diff = sys.maxsize

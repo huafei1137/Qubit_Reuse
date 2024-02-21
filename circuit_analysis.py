@@ -57,6 +57,7 @@ def has_cycle(graph, start, i, j):
     else:
         graph[i] = [j]
 
+    print(i, j, graph)
     def visit(node):
         if node in rec_stack:
             return True
@@ -103,8 +104,19 @@ def find_qubit_reuse_pairs(circuit):
     reusable_pairs = []
 
     for i in range(num_qubits):
+        last_op_index_i = -1
+        for index, (inst, qargs, cargs) in enumerate(circuit.data):
+            if any(circuit.find_bit(q).index == i for q in qargs):
+                last_op_index_i = index
         for j in range(num_qubits):
-            if i != j and not share_same_gate(qiskit_dag, i, j) and not has_cycle(custom_dag, i,i,j) and has_operation_on_qubit(circuit,i) and has_operation_on_qubit(circuit,j):
+            first_op_index_j = -1
+            for index, (inst, qargs, cargs) in enumerate(circuit.data):
+                if any(circuit.find_bit(q).index == j for q in qargs):
+                    first_op_index_j = index
+                    break
+
+
+            if i != j and not share_same_gate(qiskit_dag, i, j) and not has_cycle(custom_dag, last_op_index_i,last_op_index_i,first_op_index_j) and has_operation_on_qubit(circuit,i) and has_operation_on_qubit(circuit,j):
                 reusable_pairs.append((i, j))
 
     return reusable_pairs
