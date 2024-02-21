@@ -26,27 +26,6 @@ def has_operation_on_qubit(circuit, qubit_index):
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
 from qiskit.visualization import dag_drawer
-'''
-def build_custom_dag(qiskit_dag):
-    # Mapping from qiskit dag nodes to indices for our custom dag
-    node_map = {node: idx for idx, node in enumerate(qiskit_dag.topological_op_nodes())}
-    
-    # Initialize adjacency list for the custom DAG
-    adj_list = {node_map[node]: [] for node in qiskit_dag.topological_op_nodes()}
-
-    # Add edges based on the order of operations on each qubit
-    for qubit in qiskit_dag.qubits:
-        prev_node = None
-        for node in qiskit_dag.nodes_on_wire(qubit, only_ops=True):
-            print(qubit, node_map[node])
-            if prev_node is not None:
-                #Add an edge from prev_node to node in the custom DAG
-                adj_list[node_map[prev_node]].append(node_map[node])
-            prev_node = node
-
-    print("dag", adj_list)
-    return adj_list
-'''
 
 def has_cycle(graph, start, i, j):
     visited = set()
