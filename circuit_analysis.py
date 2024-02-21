@@ -43,7 +43,7 @@ def build_custom_dag(qiskit_dag):
                 adj_list[node_map[prev_node]].append(node_map[node])
             prev_node = node
 
-    print(adj_list)
+    #print(adj_list)
     return adj_list
 
 
@@ -57,7 +57,7 @@ def has_cycle(graph, start, i, j):
     else:
         graph[i] = [j]
 
-    print(i, j, graph)
+    #print(i, j, graph)
     def visit(node):
         if node in rec_stack:
             return True
@@ -94,10 +94,6 @@ def find_qubit_reuse_pairs(circuit):
     qiskit_dag = circuit_to_dag(circuit)
     # print(qiskit_dag)
     custom_dag = build_custom_dag(qiskit_dag)
-
-
-
-    print(custom_dag)
 
     num_qubits = len(circuit.qubits)
 
@@ -184,7 +180,7 @@ def modify_circuit(circuit, pair):
     for index, (inst, qargs, cargs) in enumerate(operations):
         # if isinstance(inst, Measure) and any(circuit.find_bit(q).index == j for q in qargs):
         #     continue
-        print(index, list(circuit.find_bit(q).index for q in qargs))    
+        #(index, list(circuit.find_bit(q).index for q in qargs))    
         if index <= last_op_index_i and all(circuit.find_bit(q).index != j for q in qargs):
             new_circuit.append(inst, qargs, cargs)
             visited.remove(index)

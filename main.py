@@ -38,14 +38,13 @@ def main():
     # for k in range(5):
     #     qc.h(k)
     reuse_pairs = find_qubit_reuse_pairs(qc)
-    print(reuse_pairs)
     if args.verbose > 0:
         print(qc)
     iter = 0
     cur_qc = qc.copy() 
     while len(reuse_pairs) > 0 and iter < len(qc.qubits) - 1:
         if iter >= len(qc.qubits) - 1:
-            raise Exception("What in tarnation is this")
+            raise Exception("This should not happen")
         if args.verbose > 0:
             print(reuse_pairs)
         depth_diff = sys.maxsize
