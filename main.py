@@ -38,6 +38,7 @@ def main():
     # for k in range(5):
     #     qc.h(k)
     reuse_pairs = find_qubit_reuse_pairs(qc)
+    print(reuse_pairs)
     if args.verbose > 0:
         print(qc)
     iter = 0
