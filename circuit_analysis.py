@@ -26,7 +26,7 @@ def has_operation_on_qubit(circuit, qubit_index):
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
 from qiskit.visualization import dag_drawer
-
+'''
 def build_custom_dag(qiskit_dag):
     # Mapping from qiskit dag nodes to indices for our custom dag
     node_map = {node: idx for idx, node in enumerate(qiskit_dag.topological_op_nodes())}
@@ -38,14 +38,15 @@ def build_custom_dag(qiskit_dag):
     for qubit in qiskit_dag.qubits:
         prev_node = None
         for node in qiskit_dag.nodes_on_wire(qubit, only_ops=True):
+            print(qubit, node_map[node])
             if prev_node is not None:
-                # Add an edge from prev_node to node in the custom DAG
+                #Add an edge from prev_node to node in the custom DAG
                 adj_list[node_map[prev_node]].append(node_map[node])
             prev_node = node
 
-    #print(adj_list)
+    print("dag", adj_list)
     return adj_list
-
+'''
 
 def has_cycle(graph, start, i, j):
     visited = set()
@@ -93,7 +94,7 @@ def share_same_gate(qiskit_dag, i, j):
 def find_qubit_reuse_pairs(circuit):
     qiskit_dag = circuit_to_dag(circuit)
     # print(qiskit_dag)
-    custom_dag = build_custom_dag(qiskit_dag)
+    custom_dag = my_custom_dag(circuit)
 
     num_qubits = len(circuit.qubits)
 
@@ -118,12 +119,26 @@ def find_qubit_reuse_pairs(circuit):
     return reusable_pairs
 
 
+def my_custom_dag(circuit):
+    #makes a dag solely using the operation list
+
+    dag = dict()
+    vals = dict()
+    vals.setdefault(None)
+    for index, (inst, qargs, cargs) in enumerate(circuit.data):
+        for q in qargs:
+            bit = circuit.find_bit(q).index
+            if vals.get(bit) != None:
+                if dag.get(vals[bit], None) == None:
+                    dag[vals[bit]] = []
+                dag[vals[bit]].append(index)
+            vals[bit] = index
+    return dag
 
 
 
 
-
-
+'''
 def remove_consecutive_duplicate_gates(circuit):
     """
     Removes consecutive duplicate gates, including measurement gates, from a quantum circuit.
@@ -143,6 +158,7 @@ def remove_consecutive_duplicate_gates(circuit):
         prev_inst, prev_qargs, prev_cargs = inst, qargs, cargs
 
     return new_circuit
+'''
 def modify_circuit(circuit, pair):
     """
     Modifies the given circuit by replacing operations on qubit j with qubit i,
@@ -157,58 +173,54 @@ def modify_circuit(circuit, pair):
     if not circuit.cregs:
         circuit.add_register(ClassicalRegister(1))
 
-    # Store all operations and find the last operation involving qubit i
+    # Store all operations, track those that contain j
     operations = []
     check_list = []
     get_list = []
     visited = []
-    last_op_index_i = -1
+    last_i = -1
     for index, (inst, qargs, cargs) in enumerate(circuit.data):
         operations.append((inst, qargs, cargs))
         visited.append(index)
+            
         if any(circuit.find_bit(q).index == i for q in qargs):
             check_list.append(index)
-            last_op_index_i = index
         if any(circuit.find_bit(q).index == j for q in qargs):
             get_list.append(index)
-            
 
+    #generate dag, and reverse it to form dependency lists
+    forwards_adjecencies = my_custom_dag(circuit)
+    dependencies = [[] for _ in range(len(operations))]
+    for a, adj in forwards_adjecencies.items():
+        for b in adj:
+            dependencies[b].append(a)
+    
     # Create a new circuit with the same registers
     new_circuit = QuantumCircuit(*circuit.qregs, *circuit.cregs)
 
-    # Add operations up to the last operation of qubit i
+    # Add all operations to the new circuit that do not depend on j or its descendants
     for index, (inst, qargs, cargs) in enumerate(operations):
-        # if isinstance(inst, Measure) and any(circuit.find_bit(q).index == j for q in qargs):
-        #     continue
-        #(index, list(circuit.find_bit(q).index for q in qargs))    
-        if index <= last_op_index_i and all(circuit.find_bit(q).index != j for q in qargs):
-            new_circuit.append(inst, qargs, cargs)
-            visited.remove(index)
-        if index == last_op_index_i:
-            # Insert measurement and reset for qubit i
-            #new_circuit.measure(i, 0)
-            new_circuit.append(Reset(), [i], []).c_if(new_circuit.cregs[0], 1)
-            
-    # print(check_list)
-    # for index, (inst, qargs, cargs) in enumerate(operations):
-    #     if index <= last_op_index_i and all(circuit.find_bit(q).index == j for q in qargs):
-    #         new_qargs = [new_circuit.qubits[i] if circuit.find_bit(q).index == j else q for q in qargs]
-    #         new_circuit.append(inst, new_qargs, cargs)
-        
+        #condition 1 if a dependency has not been processed, condition 2 is if it contains j
+        if any(n in visited for n in dependencies[index]) or index in get_list:
+            continue
+        new_circuit.append(inst, qargs, cargs)
+        visited.remove(index)
+
+    #as i should be done, we can do this. If i is not done, something went wrong with i and j
+    new_circuit.append(Reset(), [i], []).c_if(new_circuit.cregs[0], 1)
 
     # Process remaining operations, replacing qubit j with qubit i
     for index, (inst, qargs, cargs) in enumerate(operations):
         # print(operations[index])
-        '''if isinstance(inst, Measure) and any(circuit.find_bit(q).index == j for q in qargs):
-            continue'''
         if  index in get_list:
             new_qargs = [new_circuit.qubits[i] if circuit.find_bit(q).index == j else q for q in qargs]
             new_circuit.append(inst, new_qargs, cargs)
             visited.remove(index)
-    for index, (inst, qargs, cargs) in enumerate(operations):
         if index in visited:
             new_circuit.append(inst, qargs, cargs)
-            visited.remove(index)
+            visited.remove(index)    
     # print(f'there is remain {visited} gates')
 
-    return remove_consecutive_duplicate_gates(new_circuit)
+    return new_circuit
+
+#I have personally deleted many functions and processes that I have not understood the purpose of, or that I deemed to be incorrect. Feel free to add tham back if the problem demands, as I do not have full scope of the problem.

@@ -42,7 +42,7 @@ def main():
         print(qc)
     iter = 0
     cur_qc = qc.copy() 
-    while len(reuse_pairs) > 0 and iter < len(qc.qubits) - 1:
+    while len(reuse_pairs) > 0:
         if iter >= len(qc.qubits) - 1:
             raise Exception("This should not happen")
         if args.verbose > 0:
