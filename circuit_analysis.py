@@ -28,9 +28,10 @@ from qiskit import QuantumCircuit
 from qiskit.visualization import dag_drawer
 
 def has_cycle(graph, start, i, j):
-    # visited = set()
+    visited = set()
     # rec_stack = set()
 
+    '''
     # Temporarily add the edge from i to j
     if i in graph:
         graph[i].append(j)
@@ -38,6 +39,22 @@ def has_cycle(graph, start, i, j):
         graph[i] = [j]
 
     #print(i, j, graph)
+    '''
+    if i < j:
+        return False
+
+    stack = [j]
+    cycle_detected = False
+    while len(stack) > 0:
+        node = stack.pop(0)
+        visited.add(node)
+        if node == i:
+            cycle_detected = True
+            break
+        for neighbor in graph.get(node, []):
+            if neighbor not in visited and neighbor not in stack and node <= i:
+                stack.append(neighbor)
+    '''
     def visit(node):
         visited = set()
         stack = [(start, iter(graph.get(start, [])))]
@@ -58,13 +75,13 @@ def has_cycle(graph, start, i, j):
         return False
 
     cycle_detected = visit(start)
-
+    
     # Remove the temporarily added edge
     if j in graph[i]:
         graph[i].remove(j)
     if not graph[i]:
         del graph[i]
-
+    '''
     return cycle_detected
 
 
@@ -84,17 +101,17 @@ def find_qubit_reuse_pairs(circuit):
 
     reusable_pairs = []
 
+    last_i = last_index_operation(circuit)
+    first_i = first_index_operation(circuit)
+
     for i in range(num_qubits):
-        last_op_index_i = -1
-        for index, (inst, qargs, cargs) in enumerate(circuit.data):
-            if any(circuit.find_bit(q).index == i for q in qargs):
-                last_op_index_i = index
+        if i not in last_i:
+            continue
+        last_op_index_i = last_i[i]
         for j in range(num_qubits):
-            first_op_index_j = -1
-            for index, (inst, qargs, cargs) in enumerate(circuit.data):
-                if any(circuit.find_bit(q).index == j for q in qargs):
-                    first_op_index_j = index
-                    break
+            if j not in first_i:
+                continue
+            first_op_index_j = first_i[j]
 
 
             if i != j and not share_same_gate(qiskit_dag, i, j) and not has_cycle(custom_dag, last_op_index_i,last_op_index_i,first_op_index_j) and has_operation_on_qubit(circuit,i) and has_operation_on_qubit(circuit,j):
@@ -150,7 +167,7 @@ def remove_consecutive_duplicate_gates(circuit):
 
     for inst, qargs, cargs in circuit.data:
         # Check if the current gate is a duplicate of the previous gate
-        if inst == prev_inst and qargs == prev_qargs :
+        if inst == prev_inst and inst.name == 'measure' and qargs == prev_qargs :
             continue
 
         new_circuit.append(inst, qargs, cargs)
@@ -221,5 +238,3 @@ def modify_circuit(circuit, pair):
     # print(f'there is remain {visited} gates')
     new_circuit = remove_consecutive_duplicate_gates(new_circuit)
     return new_circuit
-
-#I have personally deleted many functions and processes that I have not understood the purpose of, or that I deemed to be incorrect. Feel free to add tham back if the problem demands, as I do not have full scope of the problem.
